@@ -25,7 +25,7 @@ class Stack:
         return True if self.size() == 0 else False
 
 
-# 后缀表达式计算
+# 后序表达式计算
 def postfix_calculate(postfix_expression: str) -> int:
     stack = Stack()
     allowed_operator = ('*', '/', '+', '-')
@@ -41,7 +41,7 @@ def postfix_calculate(postfix_expression: str) -> int:
         elif one in allowed_numbers:
             stack.push(one)
         else:
-            raise ValueError('表达式中包含非法字符，请注意使用半角字符')
+            raise ValueError('表达式中包含非法字符 %s，请注意使用半角字符', one)
     return int(stack.pop())
 
 
@@ -50,8 +50,21 @@ print('测试后缀表达式计算, 6523+8*+3+*, 结果应为288')
 print(postfix_calculate('6523 + 8 * + 3 + *'))
 
 
-# 中缀 -> 后缀
+# 中序 -> 后序
 def infix_to_postfix(infix_expression: str) -> str:
+    """
+    使用栈将中序表达式处理为后续表达式
+    每个输入四种情况::
+
+      操作数 -> 入栈
+      (     -> 入栈
+      操作符 -> 将栈顶输出, 直到栈空或栈顶操作符优先级小于本操作符, 最后把本操作符入栈
+      )     -> 出栈并输出, 直到将(出栈
+
+    最后输出栈内剩余操作符
+    :param infix_expression: 中序表达式
+    :return: 后序表达式
+    """
     stack = Stack()
     allowed_operator = ('*', '/', '+', '-', '(', ')')
 
@@ -68,31 +81,25 @@ def infix_to_postfix(infix_expression: str) -> str:
             pass
         elif one in allowed_operator:
             if one is ')':
-                try:
-                    while True:
-                        last_pop = stack.pop()
-                        if last_pop is '(':
-                            break
+                try:  # 出栈, 直到遇到'('.没遇到的情况可认为括号不匹配
+                    last_pop = stack.pop()
+                    while last_pop is not '(':
                         postfix_expression += last_pop
+                        last_pop = stack.pop()
                 except IndexError:
                     raise ValueError('表达式中括号不匹配')
             elif one is '(':
                 stack.push(one)
-            else:
-                if stack.is_empty() or get_priority(one) >= get_priority(stack.top()):
-                    stack.push(one)
-                else:
-                    while True:
-                        last_pop = stack.pop()
-                        postfix_expression += last_pop
-                        if stack.is_empty() or get_priority(stack.top()) < get_priority(one):
-                            break
-                    stack.push(one)
+            else:  # 一直出栈, 直到栈空或顶部操作数小于当前操作数.
+                while not stack.is_empty() and get_priority(stack.top()) >= get_priority(one):
+                    last_pop = stack.pop()
+                    postfix_expression += last_pop
+                stack.push(one)
         elif one in allowed_numbers:
             postfix_expression += one
         else:
             raise ValueError('表达式中包含非法字符 %r，请注意使用半角字符' % one)
-    while not stack.is_empty():
+    while not stack.is_empty():  # 输出栈内剩下的操作符
         postfix_expression += stack.pop()
     return postfix_expression
 
